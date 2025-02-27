@@ -3,6 +3,11 @@
 # Documentation
 I dont know why, but it's been a real pain to find documentation for the ESP32 device. I'm using a HiLetgo ESP32 OLED WiFi Kit V3. This is apparently really a product by Heltec: https://heltec.org/project/wifi-kit32-v3/
 
+USB-Serial Driver: https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers
+
+This library seems to be really important https://github.com/HelTecAutomation/Heltec_ESP32
+
+
 None of their links work, so I'm going to try to scrape together what I can find:  
 ## Specifications
 * Master Chip  ESP32-S3FN8(Xtensa®32-bit lx7 dual core processor)  
