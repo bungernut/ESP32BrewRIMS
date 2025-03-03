@@ -2,6 +2,8 @@
 #include "HT_SSD1306Wire.h" // legacy include: `#include "SSD1306.h"`
 //#include "HT_DisplayUi.h"
 #include "AiEsp32RotaryEncoder.h"
+#include "max6675.h"  //Thermocouple
+#include <TM1638lite.h> // 7Seg/8digit LED, LEDs, Buttons
 
 #define PIN_ENABLE  41
 #define PINLED  35 // Onboard White LED
@@ -12,6 +14,14 @@
 #define PIN_ROTB 45
 #define PIN_ROTS 42
 #define ROT_STEPS 4
+#define PIN_SCK  39   //TC1
+#define PIN_SDO  40   //TC1
+#define PIN_TC1CS  26 //TC1
+
+#define PIN_LEDCK  4
+#define PIN_LEDDO  3
+#define PIN_LEDCS  5
+
 
 // Setup Constants
 const float POWHEATER = 1650.; // Watts; the power of the heater
@@ -45,6 +55,8 @@ void IRAM_ATTR readEncoderISR()
 {
     rotaryEncoder.readEncoder_ISR();
 }
+MAX6675 thermocouple1(PIN_SCK, PIN_TC1CS, PIN_SDO);
+TM1638lite ledDisplay(PIN_LEDCS, PIN_LEDCK, PIN_LEDDO); //CS,CLK,DIO
 
 // These are parameter that are set by users with whatever UI
 int heaterpower = 100; // Percent of POWERLIMIT
@@ -56,6 +68,8 @@ float mashtemp = 0;
 float rimstemp = 0;
 float power_tot = 0;
 bool enable_ops = 0;
+String temp_str;
+char temp_cstr_array[3];
 
 
 unsigned long loop_time_curr;
@@ -86,6 +100,12 @@ void setup() {
   rotaryEncoder.setup(readEncoderISR);
   rotaryEncoder.setBoundaries(0, 1000, false); //min, max, circle true|false 
   rotaryEncoder.setAcceleration(20);
+  
+  ledDisplay.reset();
+  ledDisplay.displayText("SETUP");
+
+  read_temps();
+  //update_display();
   Serial.println("Setup Done");
 }
 
@@ -99,7 +119,7 @@ void loop() {
     Serial.println(String(enable_ops) + " " + String(loop_time_curr));
     if (enable_ops) {
       read_powers();
-      //read_temps();
+      read_temps();
       //update_power();
     }
     update_display();
@@ -159,6 +179,32 @@ void loop() {
 }
 
 void update_display() {
+  itoa(int(mashtemp),temp_cstr_array,10);
+  if (mashtemp<100) {
+    for (int i=2; i>0;i--){
+      temp_cstr_array[i]=temp_cstr_array[i-1];
+    }
+    temp_cstr_array[0] = '0';
+  }  
+  for (int i=0; i<3; i++){
+    ledDisplay.displayASCII(i,temp_cstr_array[i]);
+  }
+  //
+  for (int i=3; i<5;i++){
+    ledDisplay.displayASCII(i,' ');
+  }
+  // 
+  itoa(int(rimstemp),temp_cstr_array,10);
+  if (rimstemp<100) {
+    for (int i=2; i>0;i--){
+      temp_cstr_array[i]=temp_cstr_array[i-1];
+    }
+    temp_cstr_array[0] = '0';
+  } 
+  for (int i=5; i<8; i++){
+    ledDisplay.displayASCII(i,temp_cstr_array[i-5]);
+  }
+
   display.clear();
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.drawString(10, 0, "Enabled");
@@ -197,7 +243,8 @@ void read_powers(){
 }
 
 void read_temps(){
-  
+  mashtemp = thermocouple1.readFahrenheit();
+  rimstemp = thermocouple1.readFahrenheit();
 }
 
 void VextON(void) {
