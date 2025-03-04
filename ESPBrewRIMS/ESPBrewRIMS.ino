@@ -2,7 +2,7 @@
 #include "HT_SSD1306Wire.h" // legacy include: `#include "SSD1306.h"`
 //#include "HT_DisplayUi.h"
 #include "AiEsp32RotaryEncoder.h"
-#include "max6675.h"  //Thermocouple
+#include "max6675.h"  // Adafruit Thermocouple
 #include <TM1638lite.h> // 7Seg/8digit LED, LEDs, Buttons
 
 #define PIN_ENABLE  41
@@ -14,9 +14,10 @@
 #define PIN_ROTB 45
 #define PIN_ROTS 42
 #define ROT_STEPS 4
-#define PIN_SCK  39   //TC1
-#define PIN_SDO  40   //TC1
-#define PIN_TC1CS  26 //TC1
+#define PIN_SCK  39   //TC
+#define PIN_SDO  40   //TC
+#define PIN_TC1CS  38 //TC
+#define PIN_TC2CS  37 //TC2
 
 #define PIN_LEDCK  4
 #define PIN_LEDDO  3
@@ -56,6 +57,7 @@ void IRAM_ATTR readEncoderISR()
     rotaryEncoder.readEncoder_ISR();
 }
 MAX6675 thermocouple1(PIN_SCK, PIN_TC1CS, PIN_SDO);
+MAX6675 thermocouple2(PIN_SCK, PIN_TC2CS, PIN_SDO);
 TM1638lite ledDisplay(PIN_LEDCS, PIN_LEDCK, PIN_LEDDO); //CS,CLK,DIO
 
 // These are parameter that are set by users with whatever UI
@@ -244,7 +246,7 @@ void read_powers(){
 
 void read_temps(){
   mashtemp = thermocouple1.readFahrenheit();
-  rimstemp = thermocouple1.readFahrenheit();
+  rimstemp = thermocouple2.readFahrenheit();
 }
 
 void VextON(void) {
