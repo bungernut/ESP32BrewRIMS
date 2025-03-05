@@ -21,3 +21,8 @@ None of their links work, so I'm going to try to scrape together what I can find
 
 ![image](https://github.com/user-attachments/assets/c54abfae-7d97-4f00-948b-bfbb6146a0cd)
 
+### Encoder Input
+I should have looked at the spec sheet. I think the circuit is close w/ the input pullup:
+https://www.digikey.com/en/products/detail/bourns-inc/PEC11H-4220F-S0024/12349532
+![image](https://github.com/user-attachments/assets/af4e54f5-55e1-4cca-9401-f7a91b8d3811)
+
