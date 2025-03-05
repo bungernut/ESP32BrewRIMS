@@ -510,6 +510,21 @@
 					)
 				)
 			)
+		)
+		(symbol "HeltexESP32V3_0_1"
+			(rectangle
+				(start -13.97 24.13)
+				(end 13.97 -24.13)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "HeltexESP32V3_1_0"
 			(pin bidirectional line
 				(at 16.51 21.59 180)
 				(length 2.54)
@@ -520,7 +535,7 @@
 						)
 					)
 				)
-				(number "19"
+				(number "36"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -538,7 +553,7 @@
 						)
 					)
 				)
-				(number "20"
+				(number "35"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -556,7 +571,7 @@
 						)
 					)
 				)
-				(number "21"
+				(number "34"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -574,7 +589,7 @@
 						)
 					)
 				)
-				(number "22"
+				(number "33"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -592,7 +607,7 @@
 						)
 					)
 				)
-				(number "23"
+				(number "32"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -610,7 +625,7 @@
 						)
 					)
 				)
-				(number "24"
+				(number "31"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -628,7 +643,7 @@
 						)
 					)
 				)
-				(number "25"
+				(number "30"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -646,7 +661,7 @@
 						)
 					)
 				)
-				(number "26"
+				(number "29"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -664,7 +679,7 @@
 						)
 					)
 				)
-				(number "27"
+				(number "28"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -682,7 +697,7 @@
 						)
 					)
 				)
-				(number "28"
+				(number "27"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -700,7 +715,7 @@
 						)
 					)
 				)
-				(number "29"
+				(number "26"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -718,7 +733,7 @@
 						)
 					)
 				)
-				(number "30"
+				(number "25"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -736,7 +751,7 @@
 						)
 					)
 				)
-				(number "31"
+				(number "24"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -754,7 +769,7 @@
 						)
 					)
 				)
-				(number "32"
+				(number "23"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -772,7 +787,7 @@
 						)
 					)
 				)
-				(number "33"
+				(number "22"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -790,7 +805,7 @@
 						)
 					)
 				)
-				(number "34"
+				(number "21"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -808,7 +823,7 @@
 						)
 					)
 				)
-				(number "35"
+				(number "20"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -826,25 +841,12 @@
 						)
 					)
 				)
-				(number "36"
+				(number "19"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
-				)
-			)
-		)
-		(symbol "HeltexESP32V3_0_1"
-			(rectangle
-				(start -13.97 24.13)
-				(end 13.97 -24.13)
-				(stroke
-					(width 0)
-					(type default)
-				)
-				(fill
-					(type none)
 				)
 			)
 		)
