@@ -26,3 +26,23 @@ I should have looked at the spec sheet. I think the circuit is close w/ the inpu
 https://www.digikey.com/en/products/detail/bourns-inc/PEC11H-4220F-S0024/12349532
 ![image](https://github.com/user-attachments/assets/af4e54f5-55e1-4cca-9401-f7a91b8d3811)
 
+ledc is a little weird but we're trying to use if for power control (https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ledc.html).
+The range of settings is limited between freq and resolution.
+Run this script to get the output https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/AnalogOut/ledcFrequency/ledcFrequency.ino
+```
+Bit resolution | Min Frequency [Hz] | Max Frequency [Hz]
+             1 |              19532 |           20039138
+             2 |               9766 |           10019569
+             3 |               4883 |            5009784
+             4 |               2442 |            2504892
+             5 |               1221 |            1252446
+             6 |                611 |             626223
+             7 |                306 |             313111
+             8 |                153 |             156555
+             9 |                 77 |              78277
+            10 |                 39 |              39138
+            11 |                 20 |              19569
+            12 |                 10 |               9784
+            13 |                  5 |               4892
+            14 |                  3 |               2446
+```
