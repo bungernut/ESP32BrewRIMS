@@ -1,33 +1,29 @@
 #include <Wire.h>
-#include "HT_SSD1306Wire.h" // legacy include: `#include "SSD1306.h"`
-//#include "HT_DisplayUi.h"
+#include "HT_SSD1306Wire.h"  // legacy include: `#include "SSD1306.h"`
 #include "AiEsp32RotaryEncoder.h"
-#include "max6675.h"  // Adafruit Thermocouple
-#include <TM1638lite.h> // 7Seg/8digit LED, LEDs, Buttons
-#include <AutoPID.h> // https://ryand.io/AutoPID/#autopidautopid-constructor
+#include "max6675.h"     // Adafruit Thermocouple
+#include <TM1638lite.h>  // 7Seg/8digit LED, LEDs, Buttons
+#include <AutoPID.h>     // https://ryand.io/AutoPID/#autopidautopid-constructor
 
-#define PIN_ENABLE  41
-#define PINLED  35 // Onboard White LED
-#define PINSSR  33 // Use this one for heater relay control
-#define PIN_TOTPOW  A0 // The ADC for the TOTal POWer
-#define PIN_HTRPOW  A1 // ADC for the HeaTeR POWer
-#define PIN_ROTA 46
-#define PIN_ROTB 45
-#define PIN_ROTS 42
-#define ROT_STEPS 4
-#define PIN_SCK  39   //TC
-#define PIN_SDO  40   //TC
-#define PIN_TC1CS  38 //TC
-#define PIN_TC2CS  37 //TC2
+#define PIN_ENABLE 41
+#define PINLED 35      // Onboard White LED
+#define PINSSR 6      // Use this one for heater relay control
+#define PIN_TOTPOW A0  // The ADC for the TOTal POWer
+#define PIN_HTRPOW A1  // ADC for the HeaTeR POWer
 
-#define PIN_LEDCK  4
-#define PIN_LEDDO  3
-#define PIN_LEDCS  5
+#define PIN_SCK 39    //TC
+#define PIN_SDO 40    //TC
+#define PIN_TC1CS 38  //TC
+#define PIN_TC2CS 37  //TC2
+
+#define PIN_LEDDIO GPIO3  // DIO
+#define PIN_LEDCLK GPIO4  // CLK
+#define PIN_LEDSTB GPIO5  // STB (strobe)
 
 
 // Setup Constants
-const float POWHEATER = 1650.; // Watts; the power of the heater
-const float POWERLIMIT = 12.*120.; // Watts - Limit power to 12A
+const float POWHEATER = 1650.;        // Watts; the power of the heater
+const float POWERLIMIT = 12. * 120.;  // Watts - Limit power to 12A
 
 /*
 EPP32 HiLego Device (Amazon https://www.amazon.com/dp/B07DKD79Y9?ref=ppx_yo2ov_dt_b_fed_asin_title)
@@ -50,37 +46,31 @@ May consider PID control, but for now lets look at simpler methods.
 */
 
 // Setup Hardware
-static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED); // addr , freq , i2c group , resolution , rst
-//DisplayUi ui( &display );
-AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(PIN_ROTA, PIN_ROTB, PIN_ROTS, -1, ROT_STEPS);
-void IRAM_ATTR readEncoderISR()
-{
-    rotaryEncoder.readEncoder_ISR();
-}
+static SSD1306Wire display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);  // addr , freq , i2c group , resolution , rst
 MAX6675 thermocouple1(PIN_SCK, PIN_TC1CS, PIN_SDO);
 MAX6675 thermocouple2(PIN_SCK, PIN_TC2CS, PIN_SDO);
-TM1638lite ledDisplay(PIN_LEDCS, PIN_LEDCK, PIN_LEDDO); //CS,CLK,DIO
+TM1638lite ledDisplay(PIN_LEDSTB, PIN_LEDCLK, PIN_LEDDIO);  //STB,CLK,DIO
 
-bool enable_ops = 0; // A switch that disables the heater and stuff
+bool enable_ops = 0;  // A switch that disables the heater and stuff
 
 // These are parameter that are set by users with whatever UI
-double mashsettemp = 150; // Set point for mash temperature in F
-double maxrimstemp = 160; // Max temp at output of the RIMS heater
-double maxpowerpercent = 100; // it will be actually lower than 100% of maxpower of heater
+double mashsettemp = 150;      // Set point for mash temperature in F
+double maxrimstemp = 160;      // Max temp at output of the RIMS heater
+double maxpowerpercent = 100;  // it will be actually lower than 100% of maxpower of heater
 // Values used to deregulate the power a little so it's not pulling 15A
-const double maxheaterset = 1300; //Watts
-const double heaterspec   = 1650; //watts
+const double maxheaterset = 1300;  //Watts
+const double heaterspec = 1650;    //watts
 
 
 double mashtemp = 0;
 double rimstemp = 0;
 double power_tot = 0;
-double pid_out  = 0;
+double pid_out = 0;
 #define KP 3.14
 #define KI .0003
 #define KD 0
 #define OUTPUT_MIN 0
-#define OUTPUT_MAX maxheaterset/heaterspec*4095.
+#define OUTPUT_MAX maxheaterset / heaterspec * 4095.
 AutoPID myPID(&mashtemp, &mashsettemp, &pid_out, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
 // For displaying on digital LED
@@ -90,10 +80,10 @@ char temp_cstr_array[3];
 unsigned long loop_time_curr;
 unsigned long loop_time_prev;
 const unsigned long update_time = 500;
-const unsigned long selection_timeout = 5000; // How many seconds before encoder times out
+const unsigned long selection_timeout = 5000;  // How many seconds before encoder times out
 unsigned long select_time_last = 0;
-int selected_parmeter = 0; // [ POWER, MASH_TEMP, RIMS_TEMP ]
-bool selection_active = 0; 
+int selected_parmeter = 0;  // [ POWER, MASH_TEMP, RIMS_TEMP ]
+bool selection_active = 0;
 
 
 
@@ -110,20 +100,13 @@ void setup() {
   delay(1000);
   digitalWrite(PINLED, false);
   delay(1000);
-  //pinMode(PINLED, OUTPUT);
-  //pinMode(PINSSR, OUTPUT);
-  bool ledstat = ledcAttach(PINLED, 30, 12); // PIN, freq (Hz), PWM Resolution (8bit=0-255) 12=4096
-  Serial.println("ledstat:"+String(ledstat));
-  // Encoder Pin Setup
-  pinMode(PIN_ROTA, INPUT_PULLUP);
-  pinMode(PIN_ROTB, INPUT_PULLUP);
-  pinMode(PIN_ROTS, INPUT_PULLUP);
-  rotaryEncoder.areEncoderPinsPulldownforEsp32=false;
-  rotaryEncoder.begin();
-  rotaryEncoder.setup(readEncoderISR);
-  rotaryEncoder.setBoundaries(0, 1000, false); //min, max, circle true|false 
-  rotaryEncoder.setAcceleration(20);
-  
+  pinMode(PINSSR, OUTPUT);
+  digitalWrite(PINLED, false);
+  bool ledstat = ledcAttach(PINLED, 30, 12);  // PIN, freq (Hz), PWM Resolution (8bit=0-255) 12=4096
+  bool ssrstat = ledcAttach(PINSSR, 30, 12);  // PIN, freq (Hz), PWM Resolution (8bit=0-255) 12=4096
+  Serial.println("led stat:" + String(ledstat));
+  Serial.println("led stat:" + String(ssrstat));
+
   ledDisplay.reset();
   ledDisplay.displayText("SETUP");
 
@@ -138,7 +121,7 @@ void loop() {
   loop_time_curr = millis();
   if (loop_time_curr - loop_time_prev >= update_time) {
     loop_time_prev = loop_time_curr;
-    enable_ops = digitalRead(PIN_ENABLE);
+    enable_ops = true;  // digitalRead(PIN_ENABLE);
     //Serial.println(String(enable_ops) + " " + String(loop_time_curr));
     if (enable_ops) {
       read_powers();
@@ -147,59 +130,7 @@ void loop() {
     }
     update_display();
   }
-  if (enable_ops) {
-    if (rotaryEncoder.encoderChanged()) {
-      if (selection_active) {
-        switch (selected_parmeter){
-          case 0: // POWER
-            maxpowerpercent = rotaryEncoder.readEncoder();
-            break;
-          case 1: //MASH_TEMP
-            mashsettemp = rotaryEncoder.readEncoder();
-            if (mashsettemp > maxrimstemp) { maxrimstemp = mashsettemp; }
-            break;
-          case 2: //RIMS_TEMP
-            maxrimstemp = rotaryEncoder.readEncoder();
-            break;
-        }
-      }
-      else {
-        // change selected parameters
-        selected_parmeter = (selected_parmeter+1)%3;
-      }
-      update_display();
-      select_time_last = loop_time_curr; 
-    }
-    if (rotaryEncoder.isEncoderButtonClicked()) {
-      if (selection_active){
-        selection_active = 0;
-      }
-      else {
-        selection_active = 1;
-        switch (selected_parmeter) {
-          case 0: //Power
-            rotaryEncoder.setEncoderValue(maxpowerpercent);
-            rotaryEncoder.setBoundaries(0, 100, false);
-            break;
-          case 1: //MASH_TEMP
-            rotaryEncoder.setEncoderValue(mashsettemp);
-            rotaryEncoder.setBoundaries(0, 220, false);
-            break;
-          case 2:
-            rotaryEncoder.setEncoderValue(maxrimstemp);
-            rotaryEncoder.setBoundaries(0, 220, false);
-            break;
-        } 
-      }
-      update_display();
-      select_time_last = loop_time_curr; 
-    }
-    if (loop_time_curr - select_time_last >= selection_timeout) {
-      // If no actions are taken, timeout the encoder input
-      selection_active = 0;
-      myPID.reset();
-    }
-  }
+  // myPID.reset();
 }
 
 void update_power() {
@@ -213,35 +144,36 @@ void update_power() {
   //   ledcWrite(PINLED,1000);
   // }
   myPID.run();
-  ledcWrite(PINLED,int(pid_out));
+  ledcWrite(PINLED, int(pid_out));
+  ledcWrite(PINSSR, int(pid_out));
   //Serial.println(double(pid_out));
 }
 
 void update_display() {
-  itoa(int(mashtemp),temp_cstr_array,10);
-  if (mashtemp<100) {
-    for (int i=2; i>0;i--){
-      temp_cstr_array[i]=temp_cstr_array[i-1];
+  itoa(int(mashtemp), temp_cstr_array, 10);
+  if (mashtemp < 100) {
+    for (int i = 2; i > 0; i--) {
+      temp_cstr_array[i] = temp_cstr_array[i - 1];
     }
     temp_cstr_array[0] = '0';
-  }  
-  for (int i=0; i<3; i++){
-    ledDisplay.displayASCII(i,temp_cstr_array[i]);
+  }
+  for (int i = 0; i < 3; i++) {
+    ledDisplay.displayASCII(i, temp_cstr_array[i]);
   }
   //
-  for (int i=3; i<5;i++){
-    ledDisplay.displayASCII(i,' ');
+  for (int i = 3; i < 5; i++) {
+    ledDisplay.displayASCII(i, ' ');
   }
-  // 
-  itoa(int(rimstemp),temp_cstr_array,10);
-  if (rimstemp<100) {
-    for (int i=2; i>0;i--){
-      temp_cstr_array[i]=temp_cstr_array[i-1];
+  //
+  itoa(int(rimstemp), temp_cstr_array, 10);
+  if (rimstemp < 100) {
+    for (int i = 2; i > 0; i--) {
+      temp_cstr_array[i] = temp_cstr_array[i - 1];
     }
     temp_cstr_array[0] = '0';
-  } 
-  for (int i=5; i<8; i++){
-    ledDisplay.displayASCII(i,temp_cstr_array[i-5]);
+  }
+  for (int i = 5; i < 8; i++) {
+    ledDisplay.displayASCII(i, temp_cstr_array[i - 5]);
   }
 
   display.clear();
@@ -255,46 +187,51 @@ void update_display() {
     display.drawString(10, 30, "Mash " + String(int(mashtemp)) + " / " + String(int(mashsettemp)));
     display.drawString(10, 45, "RIMS " + String(int(rimstemp)) + " / " + String(int(maxrimstemp)));
     if (selected_parmeter == 0) {
-      if (selection_active) { display.drawString(0, 15,"@"); }
-      else { display.drawString(0, 15,">");  }
+      if (selection_active) {
+        display.drawString(0, 15, "@");
+      } else {
+        display.drawString(0, 15, ">");
+      }
+    } else if (selected_parmeter == 1) {
+      if (selection_active) {
+        display.drawString(0, 30, "@");
+      } else {
+        display.drawString(0, 30, ">");
+      }
+    } else if (selected_parmeter == 2) {
+      if (selection_active) {
+        display.drawString(0, 45, "@");
+      } else {
+        display.drawString(0, 45, ">");
+      }
     }
-    else if (selected_parmeter == 1) {
-      if (selection_active) { display.drawString(0, 30,"@"); }
-      else { display.drawString(0, 30,">"); }
-    }
-    else if (selected_parmeter == 2) {
-      if (selection_active) { display.drawString(0, 45,"@"); }
-      else { display.drawString(0, 45,">"); }
-    }
-  }
-  else {
+  } else {
     display.setTextAlignment(TEXT_ALIGN_RIGHT);
-    display.drawString(123,0, "OFF");
+    display.drawString(123, 0, "OFF");
     display.setTextAlignment(TEXT_ALIGN_LEFT);
   }
   display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(123,30, String(int(power_tot))+"W");
+  display.drawString(123, 30, String(int(power_tot)) + "W");
   display.display();
 }
 
-void read_powers(){
-  power_tot = 2400.*(analogRead(PIN_TOTPOW)/4095.)*3.3;
+void read_powers() {
+  power_tot = 2400. * (analogRead(PIN_TOTPOW) / 4095.) * 3.3;
 }
 
-void read_temps(){
+void read_temps() {
   mashtemp = thermocouple1.readFahrenheit();
   rimstemp = thermocouple2.readFahrenheit();
 }
 
 void VextON(void) {
   // I dont know what these do, they were in minimal example
-  pinMode(Vext,OUTPUT);
+  pinMode(Vext, OUTPUT);
   digitalWrite(Vext, LOW);
 }
 
 void VextOFF(void) {
   // I dont know what these do, they were in minimal example
-  pinMode(Vext,OUTPUT);
+  pinMode(Vext, OUTPUT);
   digitalWrite(Vext, HIGH);
 }
-
