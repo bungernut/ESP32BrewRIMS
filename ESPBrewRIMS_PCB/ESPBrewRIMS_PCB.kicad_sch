@@ -10030,6 +10030,48 @@
 			)
 		)
 	)
+	(sheet
+		(at 146.05 24.13)
+		(size 39.37 20.32)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp yes)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "c02e464b-3e11-4922-9228-21698de30173")
+		(property "Sheetname" "AC Circuit"
+			(at 146.05 23.4184 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "untitled.kicad_sch"
+			(at 146.05 45.0346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "ESPBrewRIMS_PCB"
+				(path "/d2ead811-201e-452d-a099-1da243f26c54"
+					(page "2")
+				)
+			)
+		)
+	)
 	(sheet_instances
 		(path "/"
 			(page "1")
