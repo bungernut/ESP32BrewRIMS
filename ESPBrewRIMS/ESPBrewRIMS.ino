@@ -144,9 +144,15 @@ void update_power() {
   //   ledcWrite(PINLED,1000);
   // }
   myPID.run();
-  ledcWrite(PINLED, int(pid_out));
-  ledcWrite(PINSSR, int(pid_out));
-  //Serial.println(double(pid_out));
+  if (enable_ops == true){
+    ledcWrite(PINLED, int(pid_out));
+    ledcWrite(PINSSR, int(pid_out));
+    //Serial.println(double(pid_out));
+  }
+  else {
+    ledcWrite(PINLED, 0);
+    ledcWrite(PINSSR, 0);
+  }
 }
 
 void update_display() {
