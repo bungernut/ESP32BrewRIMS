@@ -2,17 +2,17 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Wire.h>
- #include <SPI.h>
+#include <SPI.h>
 #include "HT_SSD1306Wire.h"  // legacy include: `#include "SSD1306.h"`
-#include "max6675.h"     // Adafruit Thermocouple
-#include <TM1638lite.h>  // 7Seg/8digit LED, LEDs, Buttons
-#include <AutoPID.h>     // https://ryand.io/AutoPID/#autopidautopid-constructor
- 
+#include "max6675.h"         // Adafruit Thermocouple
+#include <TM1638lite.h>      // 7Seg/8digit LED, LEDs, Buttons
+#include <AutoPID.h>         // https://ryand.io/AutoPID/#autopidautopid-constructor
+
 const char* ssid = MY_SSID;
 const char* password = MY_PASSKEY;
 
-#define PINLED 35      // Onboard White LED
-#define PINSSR 6      // Use this one for heater relay control
+#define PINLED 35   // Onboard White LED
+#define PINSSR 6    // Use this one for heater relay control
 #define PIN_POW A1  // The ADC for the POWer
 
 #define PIN_SCK 39    //TC1/2
@@ -42,10 +42,10 @@ double rimstemp = 0;
 double power_tot = 0;
 double pid_out = 0;
 const double KP = 10.;
-const double KI = 0.1; //.0003
-const double KD = 0.1; //.01;
+const double KI = 0.1;  //.0003
+const double KD = 0.1;  //.01;
 const int OUTPUT_MIN = 0;
-const int OUTPUT_MAX = 3276; //maxheaterset / heaterspec * 4095.
+const int OUTPUT_MAX = 3276;  //maxheaterset / heaterspec * 4095.
 AutoPID myPID(&rimstemp, &mashsettemp, &pid_out, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
 
@@ -53,31 +53,91 @@ AutoPID myPID(&rimstemp, &mashsettemp, &pid_out, OUTPUT_MIN, OUTPUT_MAX, KP, KI,
 void handleRoot() {
   String html = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
   html += "<link rel=\"icon\" href=\"data:,\">";
-  html += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}";
-  html += ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px; \
+  html += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center; font-size: 20px}";
+  html += ".button { background-color: #4CAF50; border: none; color: white; padding: 12px 20px; \
                      border-radius: 8px; text-decoration: none; font-size: 20px; margin: 2px; cursor: pointer;}";
   html += ".button2 { background-color: #555555; }</style></head>";
   html += "<body><h1>ESPBrew</h1>";
   html += "<p>";
   if (enable_ops == false) {
-    html += "<font color=\"red\" size=14>DISABLED</font>";
+    html += "<span style=\"color:red;\">DISABLED</span>&nbsp;";
     html += "<a href=\"/enable\"><button class=\"button\">ENABLE</button></a>";
-  }
-  else {
-    html += "<font color=\"green\" size=14>ENABLED</font>";
-    html += "<a href=\"/disable\"><button class=\"button\">DISABLE</button></a>";
+  } else {
+    html += "<span style=\"color:green;\">ENABLED</span>&nbsp;";
+    html += "<a href=\"/disable\"><button class=\"button\", style=\"background-color:red\">DISABLE</button></a>";
   }
   html += "</p>";
+  html += "<br>";
+  html += "<h2>MASH Temp</h2>";
+  html += "<a href=\"/mash_m5\"><button class=\"button\" style=\"background-color:blue;\">-5</button></a>&nbsp;";
+  html += "<a href=\"/mash_m1\"><button class=\"button\" style=\"background-color:blue;\">-1</button></a>&nbsp;";
+  html += String(mashsettemp)+"&nbsp;";
+  html += "<a href=\"/mash_p1\"><button class=\"button\" style=\"background-color:red;\">+1</button></a>&nbsp;";
+  html += "<a href=\"/mash_p5\"><button class=\"button\" style=\"background-color:red;\">+5</button></a>&nbsp;";
+  html += "<br>";
+  html += "<h2>RIMS Temp</h2>";
+  html += "<p style=\"font_size:10;text-align:center\">Set Max temp allowed before shutting off heater</p>";
+  html += "<a href=\"/rims_m5\"><button class=\"button\" style=\"background-color:blue;\">-5</button></a>&nbsp;";
+  html += "<a href=\"/rims_m1\"><button class=\"button\" style=\"background-color:blue;\">-1</button></a>&nbsp;";
+  html += String(maxrimstemp)+"&nbsp;";
+  html += "<a href=\"/rims_p1\"><button class=\"button\" style=\"background-color:red;\">+1</button></a>&nbsp;";
+  html += "<a href=\"/rims_p5\"><button class=\"button\" style=\"background-color:red;\">+5</button></a>&nbsp;";
+  html += "<br>";
+
   html += "</body></html>";
   server.send(200, "text/html", html);
 }
 void handleEnable() {
   enable_ops = true;
-  handleRoot();
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
 }
 void handleDisable() {
   enable_ops = false;
-  handleRoot();
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleMashP5() {
+  mashsettemp = mashsettemp+5.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleMashP1() {
+  mashsettemp = mashsettemp+1.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleMashM5() {
+  mashsettemp = mashsettemp-5.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleMashM1() {
+  mashsettemp = mashsettemp-1.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+// RIMS Temps
+void handleRIMSP5() {
+  maxrimstemp = maxrimstemp+5.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleRIMSP1() {
+  maxrimstemp = maxrimstemp+1.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleRIMSM5() {
+  maxrimstemp = maxrimstemp-5.0;
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
+}
+void handleRIMSM1() {
+  maxrimstemp = maxrimstemp-1.0;
+  //handleRoot();
+  server.sendHeader("Location", "/",true);
+  server.send(302, "text/plain", "");
 }
 
 
@@ -93,12 +153,12 @@ int wifi_status = 0;
 // char cstringToParse[20];
 // char * parseChars;
 
-void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("Connected to AP successfully!");
   wifi_status = 1;
 }
 
-void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
@@ -106,7 +166,7 @@ void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
   wifi_status = int(WiFi.localIP()[3]);
 }
 
-void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("Disconnected from WiFi access point");
   Serial.print("WiFi lost connection. Reason: ");
   Serial.println(info.wifi_sta_disconnected.reason);
@@ -115,7 +175,7 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
   wifi_status = 0;
 }
 
-void setup(){
+void setup() {
   Serial.begin(115200);
   VextON();
   delay(100);
@@ -148,6 +208,14 @@ void setup(){
   server.on("/", handleRoot);
   server.on("/enable", handleEnable);
   server.on("/disable", handleDisable);
+  server.on("/mash_p5", handleMashP5);
+  server.on("/mash_p1", handleMashP1);
+  server.on("/mash_m1", handleMashM1);
+  server.on("/mash_m5", handleMashM5);
+  server.on("/rims_p5", handleRIMSP5);
+  server.on("/rims_p1", handleRIMSP1);
+  server.on("/rims_m5", handleRIMSM5);
+  server.on("/rims_m1", handleRIMSM1);
 
   WiFi.begin(ssid, password);
   delay(1000);
@@ -157,7 +225,7 @@ void setup(){
   Serial.println("Setup Done");
 }
 
-void loop(){
+void loop() {
   loop_time_curr = millis();
   if (loop_time_curr - loop_time_prev > update_time) {
     read_temps();
@@ -165,28 +233,27 @@ void loop(){
     update_power();
     update_display();
     loop_time_prev = loop_time_curr;
-  }  
+  }
   // Handle incoming client requests
   server.handleClient();
 }
 
-void update_display(void){
+void update_display(void) {
   display.clear();
   display.setFont(ArialMT_Plain_10);
   // WiFi Status
   IPAddress ip = WiFi.localIP();
   display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(128,0,"WiFi:" + String(ip[0]) + "." + String(ip[1]) + "." + String(ip[2]) + "." + String(ip[3]));
+  display.drawString(128, 0, "WiFi:" + String(ip[0]) + "." + String(ip[1]) + "." + String(ip[2]) + "." + String(ip[3]));
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
   //display.drawString(0,0,  String(int(power_tot)) + " / " + String(int(pid_out*100/4096)));
-  display.drawString(0,15, "Mash " + String(int(mashtemp)) + "/" + String(int(mashsettemp)));
-  display.drawString(0,30, "RIMS " + String(int(rimstemp)) + "/" + String(int(maxrimstemp)));
-  if (enable_ops == true){
-    display.drawString(10,45, "ENABLED");
-  }
-  else {
-    display.drawString(10,45, "DISABLED");
+  display.drawString(0, 15, "Mash " + String(int(mashtemp)) + "/" + String(int(mashsettemp)));
+  display.drawString(0, 30, "RIMS " + String(int(rimstemp)) + "/" + String(int(maxrimstemp)));
+  if (enable_ops == true) {
+    display.drawString(10, 45, "ENABLED");
+  } else {
+    display.drawString(10, 45, "DISABLED");
   }
   display.display();
 }
@@ -197,17 +264,15 @@ void update_power() {
   if (rimstemp > maxrimstemp or enable_ops == false) {
     ledcWrite(PINLED, 0);
     ledcWrite(PINSSR, 0);
-  }
-  else {
+  } else {
     myPID.run();
     ledcWrite(PINLED, int(pid_out));
     ledcWrite(PINSSR, int(pid_out));
   }
-
 }
 
 void read_power() {
-  power_tot = 20.*120. * (float(analogRead(PIN_POW)) / 4095.) * 3.33;
+  power_tot = 20. * 120. * (float(analogRead(PIN_POW)) / 4095.) * 3.33;
 }
 
 void read_temps() {
