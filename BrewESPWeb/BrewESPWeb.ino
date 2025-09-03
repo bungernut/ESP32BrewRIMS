@@ -5,8 +5,12 @@
 #include <SPI.h>
 #include "HT_SSD1306Wire.h"  // legacy include: `#include "SSD1306.h"`
 #include "max6675.h"         // Adafruit Thermocouple
-#include <TM1638lite.h>      // 7Seg/8digit LED, LEDs, Buttons
 #include <AutoPID.h>         // https://ryand.io/AutoPID/#autopidautopid-constructor
+
+/*
+Heltec WiFi Kit 32(V3)
+
+*/
 
 const char* ssid = MY_SSID;
 const char* password = MY_PASSKEY;
@@ -31,10 +35,6 @@ MAX6675 thermocouple2(PIN_SCK, PIN_TC2CS, PIN_SDO);
 // These are parameter that are set by users with whatever UI
 double mashsettemp = 150;      // Set point for mash temperature in F
 double maxrimstemp = 160;      // Max temp at output of the RIMS heater
-double maxpowerpercent = 100;  // it will be actually lower than 100% of maxpower of heater
-// Values used to deregulate the power a little so it's not pulling 15A
-//const double maxheaterset = 1300.;  //Watts
-//const double heaterspec = 1650.;    //watts
 bool enable_ops = false;  // A switch that disables the heater and stuff
 
 double mashtemp = 0;
@@ -68,13 +68,13 @@ void handleRoot() {
   }
   html += "</p>";
   html += "<br>";
-  html += "<h2>MASH Temp</h2>";
-  html += "<a href=\"/mash_m5\"><button class=\"button\" style=\"background-color:blue;\">-5</button></a>&nbsp;";
-  html += "<a href=\"/mash_m1\"><button class=\"button\" style=\"background-color:blue;\">-1</button></a>&nbsp;";
-  html += String(mashsettemp)+"&nbsp;";
-  html += "<a href=\"/mash_p1\"><button class=\"button\" style=\"background-color:red;\">+1</button></a>&nbsp;";
-  html += "<a href=\"/mash_p5\"><button class=\"button\" style=\"background-color:red;\">+5</button></a>&nbsp;";
-  html += "<br>";
+  // html += "<h2>MASH Temp</h2>";
+  // html += "<a href=\"/mash_m5\"><button class=\"button\" style=\"background-color:blue;\">-5</button></a>&nbsp;";
+  // html += "<a href=\"/mash_m1\"><button class=\"button\" style=\"background-color:blue;\">-1</button></a>&nbsp;";
+  // html += String(mashsettemp)+"&nbsp;";
+  // html += "<a href=\"/mash_p1\"><button class=\"button\" style=\"background-color:red;\">+1</button></a>&nbsp;";
+  // html += "<a href=\"/mash_p5\"><button class=\"button\" style=\"background-color:red;\">+5</button></a>&nbsp;";
+  // html += "<br>";
   html += "<h2>RIMS Temp</h2>";
   html += "<p style=\"font_size:10;text-align:center\">Set Max temp allowed before shutting off heater</p>";
   html += "<a href=\"/rims_m5\"><button class=\"button\" style=\"background-color:blue;\">-5</button></a>&nbsp;";
@@ -83,7 +83,8 @@ void handleRoot() {
   html += "<a href=\"/rims_p1\"><button class=\"button\" style=\"background-color:red;\">+1</button></a>&nbsp;";
   html += "<a href=\"/rims_p5\"><button class=\"button\" style=\"background-color:red;\">+5</button></a>&nbsp;";
   html += "<br>";
-
+  html += "<p style=\"font_size:16;color:grey\">RIMS="+String(rimstemp)+"</p>";
+  html += "<p style=\"font_size:16;color:grey\">MASH="+String(mashtemp)+"</p>";
   html += "</body></html>";
   server.send(200, "text/html", html);
 }
@@ -140,18 +141,11 @@ void handleRIMSM1() {
   server.send(302, "text/plain", "");
 }
 
-
 // Loop Parameters
 unsigned long loop_time_curr;
 unsigned long loop_time_prev;
-unsigned long web_time_prev = 0;
-const long web_timeout_time = 2000;
-unsigned long mqtt_loop_time_prev;
 const unsigned long update_time = 1000;
-const unsigned long mqtt_update_time = 5000;
 int wifi_status = 0;
-// char cstringToParse[20];
-// char * parseChars;
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.println("Connected to AP successfully!");
@@ -229,7 +223,6 @@ void loop() {
   loop_time_curr = millis();
   if (loop_time_curr - loop_time_prev > update_time) {
     read_temps();
-    read_power();
     update_power();
     update_display();
     loop_time_prev = loop_time_curr;
@@ -240,7 +233,7 @@ void loop() {
 
 void update_display(void) {
   display.clear();
-  display.setFont(ArialMT_Plain_10);
+  display.setFont(ArialMT_Plain_16);
   // WiFi Status
   IPAddress ip = WiFi.localIP();
   display.setTextAlignment(TEXT_ALIGN_RIGHT);
@@ -248,8 +241,8 @@ void update_display(void) {
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
   //display.drawString(0,0,  String(int(power_tot)) + " / " + String(int(pid_out*100/4096)));
-  display.drawString(0, 15, "Mash " + String(int(mashtemp)) + "/" + String(int(mashsettemp)));
-  display.drawString(0, 30, "RIMS " + String(int(rimstemp)) + "/" + String(int(maxrimstemp)));
+  //display.drawString(0, 15, "Mash " + String(int(mashtemp)) + "/" + String(int(mashsettemp)));
+  display.drawString(0, 20, "RIMS " + String(int(rimstemp)) + "/" + String(int(maxrimstemp)));
   if (enable_ops == true) {
     display.drawString(10, 45, "ENABLED");
   } else {
@@ -257,8 +250,6 @@ void update_display(void) {
   }
   display.display();
 }
-
-
 
 void update_power() {
   if (rimstemp > maxrimstemp or enable_ops == false) {
@@ -269,10 +260,6 @@ void update_power() {
     ledcWrite(PINLED, int(pid_out));
     ledcWrite(PINSSR, int(pid_out));
   }
-}
-
-void read_power() {
-  power_tot = 20. * 120. * (float(analogRead(PIN_POW)) / 4095.) * 3.33;
 }
 
 void read_temps() {
